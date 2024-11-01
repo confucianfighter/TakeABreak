@@ -1,6 +1,6 @@
 {
-    "session_duration": 6.0,
-    "break_duration": 6.0,
+    "session_duration": 3.0,
+    "break_duration": 3.0,
     "todo_list": [
         "something"
     ],
