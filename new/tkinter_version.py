@@ -20,19 +20,35 @@ class BreakApp:
 
     def create_settings_frame(self):
         self.settings_frame.pack(fill='both', expand=True)
-        tk.Label(self.settings_frame, text="Enter session duration (minutes):").pack()
-        self.session_entry = tk.Entry(self.settings_frame)
+
+        # Load existing settings
+        session_duration = settings.get('session_duration', 25.0)
+        break_duration = settings.get('break_duration', 5.0)
+        todo_list = settings.get('todo_list', [])
+
+        # Define font and color settings for the dark theme
+        font_settings = ("Arial", 36)  # 3 times bigger than typical size
+        bg_color = '#2E2E2E'  # Dark background
+        fg_color = '#FFFFFF'  # White text
+
+        self.settings_frame.configure(bg=bg_color)
+
+        tk.Label(self.settings_frame, text="Enter session duration (minutes):", font=font_settings, bg=bg_color, fg=fg_color).pack()
+        self.session_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
+        self.session_entry.insert(0, str(session_duration / 60))  # Convert seconds back to minutes
         self.session_entry.pack()
 
-        tk.Label(self.settings_frame, text="Enter break duration (minutes):").pack()
-        self.break_entry = tk.Entry(self.settings_frame)
+        tk.Label(self.settings_frame, text="Enter break duration (minutes):", font=font_settings, bg=bg_color, fg=fg_color).pack()
+        self.break_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
+        self.break_entry.insert(0, str(break_duration / 60))  # Convert seconds back to minutes
         self.break_entry.pack()
 
-        tk.Label(self.settings_frame, text="Enter to-do list (one item per line):").pack()
-        self.todo_text = tk.Text(self.settings_frame, height=5)
+        tk.Label(self.settings_frame, text="Enter to-do list (one item per line):", font=font_settings, bg=bg_color, fg=fg_color).pack()
+        self.todo_text = tk.Text(self.settings_frame, height=5, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
+        self.todo_text.insert("1.0", "\n".join(todo_list))
         self.todo_text.pack()
 
-        tk.Button(self.settings_frame, text="Start", command=self.start_session).pack()
+        tk.Button(self.settings_frame, text="Start", command=self.start_session, font=font_settings, bg='#4E4E4E', fg=fg_color).pack()
 
         # Bind focus events
         self.root.bind("<FocusOut>", self.on_focus_out)
