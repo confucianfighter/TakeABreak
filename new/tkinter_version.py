@@ -16,6 +16,7 @@ def load_writing_prompts():
 
 class BreakApp:
     def __init__(self, root):
+        pygame.mixer.init()
         self.root = root
         self.root.title("Break Timer App")
         self.root.attributes('-topmost', True)  # Ensure the window stays on top
@@ -31,6 +32,7 @@ class BreakApp:
         session_duration = settings.get('session_duration', 25.0)
         break_duration = settings.get('break_duration', 5.0)
         todo_list = settings.get('todo_list', [])
+        num_mindfulness_reminders = int(settings.get('num_mindfulness_reminders', 3))  # Ensure it's retrieved as an integer
 
         # Define font and color settings for the dark theme
         font_settings = ("Arial", 36)  # 3 times bigger than typical size
@@ -54,6 +56,11 @@ class BreakApp:
         self.todo_text.insert("1.0", "\n".join(todo_list))
         self.todo_text.pack()
 
+        tk.Label(self.settings_frame, text="Enter number of mindfulness reminders:", font=font_settings, bg=bg_color, fg=fg_color).pack()
+        self.reminders_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
+        self.reminders_entry.insert(0, str(num_mindfulness_reminders))
+        self.reminders_entry.pack()
+
         tk.Button(self.settings_frame, text="Start", command=self.start_session, font=font_settings, bg='#4E4E4E', fg=fg_color).pack()
 
         # Bind focus events
@@ -65,12 +72,14 @@ class BreakApp:
             session_duration = float(self.session_entry.get()) * 60
             break_duration = float(self.break_entry.get()) * 60
             todo_list = self.todo_text.get("1.0", tk.END).strip().split('\n')
-            if not session_duration or not break_duration or not todo_list:
+            num_mindfulness_reminders = int(self.reminders_entry.get())
+            if not session_duration or not break_duration or not todo_list or num_mindfulness_reminders <= 0:
                 messagebox.showerror("Error", "Please fill in all fields")
                 return
             settings.set('session_duration', session_duration)
             settings.set('break_duration', break_duration)
             settings.set('todo_list', todo_list)
+            settings.set('num_mindfulness_reminders', num_mindfulness_reminders)
             self.settings_frame.pack_forget()
             self.run_session(session_duration, break_duration, todo_list)
         except ValueError:
@@ -79,6 +88,8 @@ class BreakApp:
     def run_session(self, session_duration, break_duration, todo_list):
         self.alarm_playing = False  # Disable the alarm
         self.root.iconify()  # Minimize the window
+        num_mindfulness_reminders = int(self.reminders_entry.get())
+        self.schedule_mindfulness_reminders(session_duration, num_mindfulness_reminders)
         self.root.after(int(session_duration * 1000), lambda: self.start_break(break_duration, todo_list))
         self.countdown(session_duration, "Session")
 
@@ -248,6 +259,14 @@ class BreakApp:
         # Move to the next prompt
         self.display_prompts(prompts, break_duration, todo_list, font_settings, index + 1)
 
+    def schedule_mindfulness_reminders(self, session_duration, num_reminders):
+        interval = session_duration / (num_reminders + 1)
+        for i in range(1, num_reminders + 1):
+            self.root.after(int(i * interval * 1000), self.play_mindfulness_sound)
+
+    def play_mindfulness_sound(self):
+        sound = pygame.mixer.Sound('deep_bell.wav')
+        sound.play()
 if __name__ == "__main__":
     root = tk.Tk()
     app = BreakApp(root)

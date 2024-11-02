@@ -1,5 +1,5 @@
 {
-    "session_duration": 3.0,
+    "session_duration": 12.0,
     "break_duration": 3.0,
     "todo_list": [
         "something"
@@ -398,5 +398,7 @@
         "Tough one. Probably would be the time with that french model holding hands after play wrestling. I was so much at peace and felt I had really connected with someone.",
         "I accept that I can't always be in a romantic moment.",
         "I am satisfied with the good times because I enjoy remembering them."
-    ]
+    ],
+    "mindfulness_reminders": 1,
+    "num_mindfulness_reminders": 4
 }
