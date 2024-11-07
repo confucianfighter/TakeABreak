@@ -1,9 +1,9 @@
 {
-    "session_duration": 0.25,
-    "break_duration": 0.5,
+    "session_duration": 2700.0,
+    "break_duration": 420.0,
     "todo_list": [
-        "Activate hypocampus using pistol whip.",
-        "Make shopping list for brake repair."
+        "Decide if to wait until maintenance is gone to work on car.",
+        "Pistol whip."
     ],
     "combined_list": [
         "I will succeed, and my dad will be rewarded.",
@@ -401,5 +401,5 @@
         "I am satisfied with the good times because I enjoy remembering them."
     ],
     "mindfulness_reminders": 1,
-    "num_mindfulness_reminders": 1
+    "num_mindfulness_reminders": 3
 }

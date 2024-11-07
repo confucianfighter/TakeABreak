@@ -9,16 +9,6 @@ from playsound import playsound
 import threading
 import pygame
 import subprocess
-import win32api
-import win32event
-import winerror
-from inspirational_quote import get_inspirational_quote
-import os
-
-# change cwd to the directory of the script
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-testing = True
-
 
 def load_writing_prompts():
     with open('writing_prompts.toml', 'r') as file:
@@ -27,25 +17,13 @@ def load_writing_prompts():
 
 def load_mindfulness_reminders():
     data = None
-    # print cwd
-    print(os.getcwd())
     with open('mindfulness_reminders.toml', 'r') as file:
         data = toml.load(file)
     print(random.choice(data['mindfulness_reminders']))
     return data['mindfulness_reminders']
 
 class BreakApp:
-    
     def __init__(self, root):
-        if not testing:
-            self.enforce_single_instance()
-        self.mindfulness_reminders = load_mindfulness_reminders()
-        self.snooze_duration = 1  # Snooze duration in minutes
-        self.break_duration = settings.get('break_duration', 5.0)
-        self.session_duration = settings.get('session_duration', 25.0)
-        self.todo_list = settings.get('todo_list', [])
-        self.num_mindfulness_reminders = int(settings.get('num_mindfulness_reminders', 3))  # Ensure it's retrieved as an integer
-
         pygame.mixer.init()
         self.root = root
         self.root.title("Break Timer App")
@@ -54,20 +32,17 @@ class BreakApp:
         self.workflow_frame = tk.Frame(self.root)
         self.alarm_playing = False
         self.create_settings_frame()
-        
-    def enforce_single_instance(self):
-        # Create a mutex to prevent multiple instances of the app from running
-        mutex = win32event.CreateMutex(None, False, "take_a_break")
-
-        if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-            print("Another instance of this app is already running. Exiting.")
-            sys.exit()
+        self.mindfulness_reminders = load_mindfulness_reminders()
 
     def create_settings_frame(self):
         self.settings_frame.pack(fill='both', expand=True)
 
         # Load existing settings
-        
+        session_duration = settings.get('session_duration', 25.0)
+        break_duration = settings.get('break_duration', 5.0)
+        todo_list = settings.get('todo_list', [])
+        num_mindfulness_reminders = int(settings.get('num_mindfulness_reminders', 3))  # Ensure it's retrieved as an integer
+
         # Define font and color settings for the dark theme
         font_settings = ("Arial", 36)  # 3 times bigger than typical size
         bg_color = '#2E2E2E'  # Dark background
@@ -77,53 +52,54 @@ class BreakApp:
 
         tk.Label(self.settings_frame, text="Enter session duration (minutes):", font=font_settings, bg=bg_color, fg=fg_color).pack()
         self.session_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
-        self.session_entry.insert(0, str(self.session_duration))  # Convert seconds back to minutes
+        self.session_entry.insert(0, str(session_duration / 60))  # Convert seconds back to minutes
         self.session_entry.pack()
 
         tk.Label(self.settings_frame, text="Enter break duration (minutes):", font=font_settings, bg=bg_color, fg=fg_color).pack()
         self.break_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
-        self.break_entry.insert(0, str(self.break_duration))  # Convert seconds back to minutes
+        self.break_entry.insert(0, str(break_duration / 60))  # Convert seconds back to minutes
         self.break_entry.pack()
 
         tk.Label(self.settings_frame, text="Enter to-do list (one item per line):", font=font_settings, bg=bg_color, fg=fg_color).pack()
         self.todo_text = tk.Text(self.settings_frame, height=5, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
-        self.todo_text.insert("1.0", "\n".join(self.todo_list))
+        self.todo_text.insert("1.0", "\n".join(todo_list))
         self.todo_text.pack()
 
         tk.Label(self.settings_frame, text="Enter number of mindfulness reminders:", font=font_settings, bg=bg_color, fg=fg_color).pack()
         self.reminders_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
-        self.reminders_entry.insert(0, str(self.num_mindfulness_reminders))
+        self.reminders_entry.insert(0, str(num_mindfulness_reminders))
         self.reminders_entry.pack()
 
-        tk.Button(self.settings_frame, text="Start", command=self.on_submit_settings, font=font_settings, bg='#4E4E4E', fg=fg_color).pack()
+        tk.Button(self.settings_frame, text="Start", command=self.start_session, font=font_settings, bg='#4E4E4E', fg=fg_color).pack()
 
         # Bind focus events
         self.root.bind("<FocusOut>", self.on_focus_out)
         self.root.bind("<FocusIn>", self.on_focus_in)
-    # we need to refactor so that if it's a snooze, we can use 0 mindfulness reminders and have a different break duration
-    def on_submit_settings(self):
+
+    def start_session(self):
         try:
-            self.session_duration = float(self.session_entry.get())
-            self.break_duration = float(self.break_entry.get())
-            self.todo_list = self.todo_text.get("1.0", tk.END).strip().split('\n')
-            self.num_mindfulness_reminders = int(self.reminders_entry.get())
-            if not self.session_duration or not self.break_duration or not self.todo_list or self.num_mindfulness_reminders <= 0:
+            session_duration = float(self.session_entry.get()) * 60
+            break_duration = float(self.break_entry.get()) * 60
+            todo_list = self.todo_text.get("1.0", tk.END).strip().split('\n')
+            num_mindfulness_reminders = int(self.reminders_entry.get())
+            if not session_duration or not break_duration or not todo_list or num_mindfulness_reminders <= 0:
                 messagebox.showerror("Error", "Please fill in all fields")
                 return
-            settings.set('session_duration', self.session_duration)
-            settings.set('break_duration', self.break_duration)
-            settings.set('todo_list', self.todo_list)
-            settings.set('num_mindfulness_reminders', self.num_mindfulness_reminders)
+            settings.set('session_duration', session_duration)
+            settings.set('break_duration', break_duration)
+            settings.set('todo_list', todo_list)
+            settings.set('num_mindfulness_reminders', num_mindfulness_reminders)
+            self.settings_frame.pack_forget()
+            self.run_session(session_duration, break_duration, todo_list)
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numbers for session and break durations")
-        self.settings_frame.pack_forget()
-        self.run_session(self.session_duration, self.break_duration, self.todo_list, self.num_mindfulness_reminders)
-    
-    def run_session(self, session_duration, break_duration, todo_list, num_mindfulness_reminders):
+
+    def run_session(self, session_duration, break_duration, todo_list):
         self.alarm_playing = False  # Disable the alarm
         self.root.iconify()  # Minimize the window
+        num_mindfulness_reminders = int(self.reminders_entry.get())
         self.schedule_mindfulness_reminders(session_duration, num_mindfulness_reminders)
-        self.root.after(int(session_duration * 60 * 1000), lambda: self.start_break(break_duration, todo_list))
+        self.root.after(int(session_duration * 1000), lambda: self.start_break(break_duration, todo_list))
         self.countdown(session_duration, "Session")
 
     def start_break(self, break_duration, todo_list):
@@ -132,9 +108,9 @@ class BreakApp:
         self.workflow_frame.pack(fill='both', expand=True)
         self.root.attributes('-fullscreen', True)
         self.root.attributes('-topmost', True)
-        self.start_break_sequence(break_duration, todo_list)
+        self.display_break_screen(break_duration, todo_list)
 
-    def start_break_sequence(self, break_duration, todo_list):
+    def display_break_screen(self, break_duration, todo_list):
         self.workflow_frame.pack(fill='both', expand=True)
         self.workflow_frame.configure(bg='black')  # Set background to black
 
@@ -195,10 +171,6 @@ class BreakApp:
             # Button to proceed to the next prompt
             next_button = tk.Button(self.workflow_frame, text="Next", command=submit_answer, font=("Arial", 24), bg='#4E4E4E', fg='white')
             next_button.pack(pady=20, fill='x', expand=True)
-
-            # Snooze button
-            snooze_button = tk.Button(self.workflow_frame, text="Snooze", command=lambda: self.snooze(), font=("Arial", 24), bg='#4E4E4E', fg='white')
-            snooze_button.pack(pady=20, fill='x', expand=True)
         else:
             # After all prompts, display the break screen
             self.show_break_screen(break_duration, todo_list, font_settings)
@@ -217,24 +189,14 @@ class BreakApp:
             widget.destroy()
 
         # Display break time message
-        quote = get_inspirational_quote()
-        tk.Label(self.workflow_frame, text=quote, font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
-        tk.Label(self.workflow_frame, text="To-do List:", font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
+        tk.Label(self.workflow_frame, text="Break Time!", font=font_settings, bg='black', fg='white').pack(expand=True, pady=20)
+        tk.Label(self.workflow_frame, text="To-do List:", font=font_settings, bg='black', fg='white').pack(expand=True, pady=20)
         
         for item in todo_list:
             tk.Label(self.workflow_frame, text=item, font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
 
-        self.countdown(break_duration * 60, "Break")
-        # Schedule to return to the settings screen after the break duration
-        # Snooze button
-        snooze_button = tk.Button(self.workflow_frame, text="Snooze", command=lambda: self.snooze(), font=("Arial", 24), bg='#4E4E4E', fg='white')
-        snooze_button.pack(pady=20, fill='x', expand=True)
+        self.countdown(break_duration, "Break")
 
-    def snooze(self):
-        # Hide the current frame
-        self.workflow_frame.pack_forget()
-        self.run_session(self.snooze_duration, self.break_duration, self.todo_list, 0)# Schedule to return to the current activity after the snooze duration
-        
     def countdown(self, duration, label):
         if duration > 0:
             minutes, seconds = divmod(duration, 60)
@@ -263,13 +225,53 @@ class BreakApp:
         while self.alarm_playing:
             playsound('gentle_alarm.mp3')
 
+    def display_prompts(self, prompts, break_duration, todo_list, font_settings, index=0):
+        if index < len(prompts):
+            # Clear any existing widgets
+            for widget in self.workflow_frame.winfo_children():
+                widget.destroy()
+
+            # Display the current prompt with text wrapping
+            prompt_label = tk.Label(
+                self.workflow_frame,
+                text=prompts[index],
+                font=font_settings,
+                bg='black',
+                fg='white',
+                wraplength=self.root.winfo_screenwidth() - 100  # Wrap text to fit within the screen width
+            )
+            prompt_label.pack(expand=True, pady=20)
+
+            # Add an input field for the user to answer the prompt
+            answer_entry = tk.Text(self.workflow_frame, height=5, font=("Arial", 24), bg='#3E3E3E', fg='white', insertbackground='white')
+            answer_entry.pack(expand=True, pady=20)
+
+            # Function to handle submission
+            def submit_answer(event=None):
+                self.next_prompt(prompts, break_duration, todo_list, font_settings, index, answer_entry)
+
+            # Bind Ctrl+Enter to submit the answer
+            answer_entry.bind('<Control-Return>', submit_answer)
+
+            # Button to proceed to the next prompt
+            next_button = tk.Button(self.workflow_frame, text="Next", command=submit_answer, font=("Arial", 24), bg='#4E4E4E', fg='white')
+            next_button.pack(pady=20, fill='x', expand=True)
+        else:
+            # After all prompts, display the break screen
+            self.show_break_screen(break_duration, todo_list, font_settings)
+
+    def next_prompt(self, prompts, break_duration, todo_list, font_settings, index, answer_entry):
+        # Here you can handle the answer, e.g., save it to a file or process it
+        answer = answer_entry.get("1.0", tk.END).strip()
+        print(f"Answer to prompt {index + 1}: {answer}")  # Example: print the answer
+
+        # Move to the next prompt
+        self.display_prompts(prompts, break_duration, todo_list, font_settings, index + 1)
+
     def schedule_mindfulness_reminders(self, session_duration, num_reminders):
-        print(f"Scheduling {num_reminders} mindfulness reminders for {session_duration} seconds")
-        if num_reminders == 0:
-            return
         interval = session_duration / (num_reminders + 1)
         for i in range(1, num_reminders + 1):
-            self.root.after(int(i * interval * 60 * 1000), self.play_mindfulness_sound)
+            self.root.after(int(i * interval * 1000), self.play_mindfulness_sound)
 
     def play_mindfulness_sound(self):
         sound = pygame.mixer.Sound('deep_bell.wav')
