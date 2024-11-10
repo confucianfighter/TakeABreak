@@ -45,7 +45,7 @@ class BreakApp:
         self.session_duration = settings.get('session_duration', 25.0)
         self.todo_list = settings.get('todo_list', [])
         self.num_mindfulness_reminders = int(settings.get('num_mindfulness_reminders', 3))  # Ensure it's retrieved as an integer
-
+        self.pre_break_warning_duration_minutes = settings.get('pre_break_warning_duration_minutes', .25)
         pygame.mixer.init()
         self.root = root
         self.root.title("Break Timer App")
@@ -95,6 +95,11 @@ class BreakApp:
         self.reminders_entry.insert(0, str(self.num_mindfulness_reminders))
         self.reminders_entry.pack()
 
+        tk.Label(self.settings_frame, text="Enter pre-break warning duration (minutes):", font=font_settings, bg=bg_color, fg=fg_color).pack()
+        self.pre_break_warning_entry = tk.Entry(self.settings_frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
+        self.pre_break_warning_entry.insert(0, str(self.pre_break_warning_duration_minutes))
+        self.pre_break_warning_entry.pack()
+
         tk.Button(self.settings_frame, text="Start", command=self.on_submit_settings, font=font_settings, bg='#4E4E4E', fg=fg_color).pack()
 
         # Bind focus events
@@ -107,6 +112,7 @@ class BreakApp:
             self.break_duration = float(self.break_entry.get())
             self.todo_list = self.todo_text.get("1.0", tk.END).strip().split('\n')
             self.num_mindfulness_reminders = int(self.reminders_entry.get())
+            self.pre_break_warning_duration_minutes = float(self.pre_break_warning_entry.get())
             if not self.session_duration or not self.break_duration or not self.todo_list or self.num_mindfulness_reminders <= 0:
                 messagebox.showerror("Error", "Please fill in all fields")
                 return
@@ -119,23 +125,40 @@ class BreakApp:
         self.settings_frame.pack_forget()
         self.run_session(self.session_duration, self.break_duration, self.todo_list, self.num_mindfulness_reminders)
     
-    def run_session(self, session_duration, break_duration, todo_list, num_mindfulness_reminders):
-        self.alarm_playing = False  # Disable the alarm
-        self.root.iconify()  # Minimize the window
-        self.schedule_mindfulness_reminders(session_duration, num_mindfulness_reminders)
+    def run_session(self, session_duration, break_duration, todo_list, num_mindfulness_reminders, is_snooze=False):
+        self.alarm_playing = False  # Disables the alarm
+        self.root.iconify() # minimizes the window
+        self.root.attributes('-topmost', False) # sets topmost to false
+        if not is_snooze:
+            self.schedule_mindfulness_reminders(session_duration, num_mindfulness_reminders)
+            self.schedule_pre_break_warning(self.pre_break_warning_duration_minutes)
         self.root.after(int(session_duration * 60 * 1000), lambda: self.start_break(break_duration, todo_list))
         self.countdown(session_duration, "Session")
 
+    def schedule_pre_break_warning(self, pre_break_warning_duration_minutes):
+        # calculate minutes as session duration - pre break warning
+        minutes = self.session_duration - pre_break_warning_duration_minutes
+        print(f"Scheduling pre-break warning for {minutes} minutes")
+        mindfulness_reminder = f"Break will commence in {minutes} minutes. Tune in with your breathing and start working on a stopping point."
+        self.root.after(int(minutes * 60 * 1000), self.play_mindfulness_bell_and_reminder, mindfulness_reminder)
+    
+
     def start_break(self, break_duration, todo_list):
         self.alarm_playing = True
+        # prepare a gentle "it's break time" message
+        break_time_message = "It is now break time. Take a moment to stretch, breathe, and reflect."
+        # play mindfulness bell and reminder
+        # schedule break screen for 10 seconds from now
+        
+        
+        self.root.after(8000, self.start_break_sequence(break_duration, todo_list))
+        self.play_mindfulness_bell_and_reminder(break_time_message)
+
+    def start_break_sequence(self, break_duration, todo_list):
         self.root.deiconify()  # Restore the window
         self.workflow_frame.pack(fill='both', expand=True)
         self.root.attributes('-fullscreen', True)
         self.root.attributes('-topmost', True)
-        self.start_break_sequence(break_duration, todo_list)
-
-    def start_break_sequence(self, break_duration, todo_list):
-        self.workflow_frame.pack(fill='both', expand=True)
         self.workflow_frame.configure(bg='black')  # Set background to black
 
         # Clear any existing widgets
@@ -233,7 +256,7 @@ class BreakApp:
     def snooze(self):
         # Hide the current frame
         self.workflow_frame.pack_forget()
-        self.run_session(self.snooze_duration, self.break_duration, self.todo_list, 0)# Schedule to return to the current activity after the snooze duration
+        self.run_session(self.snooze_duration, self.break_duration, self.todo_list, num_mindfulness_reminders=0, is_snooze=True)# Schedule to return to the current activity after the snooze duration
         
     def countdown(self, duration, label):
         if duration > 0:
@@ -264,26 +287,69 @@ class BreakApp:
             playsound('gentle_alarm.mp3')
 
     def schedule_mindfulness_reminders(self, session_duration, num_reminders):
-        print(f"Scheduling {num_reminders} mindfulness reminders for {session_duration} seconds")
+        print(f"Scheduling {num_reminders} mindfulness reminders over {session_duration} minutes")
+        session_duration = session_duration - self.pre_break_warning_duration_minutes
+        print(f"After adjusting for pre-break warning, we have {session_duration} minutes to divide among {num_reminders} reminders")
         if num_reminders == 0:
             return
         interval = session_duration / (num_reminders + 1)
+        print(f"That equates to {interval} minutes between reminders")
         for i in range(1, num_reminders + 1):
-            self.root.after(int(i * interval * 60 * 1000), self.play_mindfulness_sound)
+            self.root.after(int(i * interval * 60 * 1000), self.play_mindfulness_bell_and_reminder)
 
-    def play_mindfulness_sound(self):
+    def play_mindfulness_bell_and_reminder(self, mindfulness_reminder=""):
+        # if mindfulness reminder is empty, pick a random one
+        if mindfulness_reminder == "":
+            mindfulness_reminder = random.choice(self.mindfulness_reminders)
         sound = pygame.mixer.Sound('deep_bell.wav')
         clip_length = sound.get_length()
         # set volume to 50%
         sound.set_volume(0.5)
         sound.play()
         time.sleep(clip_length * .25)
-        self.play_random_mindfulness_reminder()
+        self.play_mindfulness_reminder(mindfulness_reminder)
 
-    def play_random_mindfulness_reminder(self):
-        reminder = random.choice(self.mindfulness_reminders)
+    def play_mindfulness_reminder(self, reminder):
         subprocess.run(['espeak', '-s', '120', reminder])
+
+    def create_list_item_widget(self, frame, items):
+        font_settings = ("Arial", 36)  # 3 times bigger than typical size
+        bg_color = '#2E2E2E'  # Dark background
+        fg_color = '#FFFFFF'  # White text
+
+        listbox = tk.Listbox(frame, font=font_settings, bg=bg_color, fg=fg_color, selectbackground='#4E4E4E', selectforeground=fg_color)
+        listbox.pack(fill='both', expand=True)
+
+        for item in items:
+            listbox.insert(tk.END, item)
+
+        entry = tk.Entry(frame, font=font_settings, bg='#3E3E3E', fg=fg_color, insertbackground=fg_color)
+        entry.pack()
+
+        def add_item():
+            item = entry.get()
+            if item:
+                listbox.insert(tk.END, item)
+                entry.delete(0, tk.END)
+
+        def remove_item():
+            selected = listbox.curselection()
+            if selected:
+                listbox.delete(selected)
+
+        add_button = tk.Button(frame, text="Add", command=add_item, font=font_settings, bg='#4E4E4E', fg=fg_color)
+        add_button.pack()
+
+        remove_button = tk.Button(frame, text="Remove", command=remove_item, font=font_settings, bg='#4E4E4E', fg=fg_color)
+        remove_button.pack()
+
+        return listbox
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = BreakApp(root)
+    # Example usage of create_list_item_widget
+    example_frame = tk.Frame(root)
+    example_frame.pack(fill='both', expand=True)
+    app.create_list_item_widget(example_frame, ["Project 1", "Project 2", "Project 3"])
     root.mainloop()
