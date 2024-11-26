@@ -1,0 +1,15 @@
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\bin\Debug\net9.0\AlwaysOnTop.exe
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\bin\Debug\net9.0\AlwaysOnTop.deps.json
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\bin\Debug\net9.0\AlwaysOnTop.runtimeconfig.json
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\bin\Debug\net9.0\AlwaysOnTop.dll
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\bin\Debug\net9.0\AlwaysOnTop.pdb
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.GeneratedMSBuildEditorConfig.editorconfig
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.AssemblyInfoInputs.cache
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.AssemblyInfo.cs
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.csproj.CoreCompileInputs.cache
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.sourcelink.json
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.dll
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\refint\AlwaysOnTop.dll
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.pdb
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\AlwaysOnTop.genruntimeconfig.cache
+C:\Daylan\terminal_commands\MindfulCoding\TakeABreak\new\AlwaysOnTop\obj\Debug\net9.0\ref\AlwaysOnTop.dll

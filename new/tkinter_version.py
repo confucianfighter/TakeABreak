@@ -64,6 +64,7 @@ class BreakApp:
             sys.exit()
 
     def create_settings_frame(self):
+        self.settings_frame = tk.Frame(self.root)
         self.settings_frame.pack(fill='both', expand=True)
 
         # Load existing settings
@@ -113,9 +114,6 @@ class BreakApp:
             self.todo_list = self.todo_text.get("1.0", tk.END).strip().split('\n')
             self.num_mindfulness_reminders = int(self.reminders_entry.get())
             self.pre_break_warning_duration_minutes = float(self.pre_break_warning_entry.get())
-            if not self.session_duration or not self.break_duration or not self.todo_list or self.num_mindfulness_reminders <= 0:
-                messagebox.showerror("Error", "Please fill in all fields")
-                return
             settings.set('session_duration', self.session_duration)
             settings.set('break_duration', self.break_duration)
             settings.set('todo_list', self.todo_list)
@@ -133,12 +131,13 @@ class BreakApp:
             self.schedule_mindfulness_reminders(session_duration, num_mindfulness_reminders)
             self.schedule_pre_break_warning(self.pre_break_warning_duration_minutes)
         self.root.after(int(session_duration * 60 * 1000), lambda: self.start_break(break_duration, todo_list))
-        self.countdown(session_duration, "Session")
+        self.countdown(session_duration * 60, "Session")
 
     def schedule_pre_break_warning(self, pre_break_warning_duration_minutes):
         # calculate minutes as session duration - pre break warning
+        print(f"pre_break_warning_duration_minutes: {pre_break_warning_duration_minutes}")
         minutes = self.session_duration - pre_break_warning_duration_minutes
-        print(f"Scheduling pre-break warning for {minutes} minutes")
+        print(f"Scheduling pre-break warning for the {minutes} minute mark")
         mindfulness_reminder = f"Break will commence in {minutes} minutes. Tune in with your breathing and start working on a stopping point."
         self.root.after(int(minutes * 60 * 1000), self.play_mindfulness_bell_and_reminder, mindfulness_reminder)
     
@@ -151,7 +150,7 @@ class BreakApp:
         # schedule break screen for 10 seconds from now
         
         
-        self.root.after(8000, self.start_break_sequence(break_duration, todo_list))
+        self.root.after(8000, lambda: self.start_break_sequence(break_duration, todo_list))
         self.play_mindfulness_bell_and_reminder(break_time_message)
 
     def start_break_sequence(self, break_duration, todo_list):
@@ -168,6 +167,13 @@ class BreakApp:
         # Define font settings for large text
         font_settings = ("Arial", 48)  # Large font size
 
+        workflow_prompts = [
+            "What are you working on?",
+            "Why is it important?",
+            "What are the challenges?",
+            "What's the smallest next step?",
+            "What will success look like?",
+        ]
         # Load standard prompts
         standard_prompts = [
             "Enter a positive affirmation:",
@@ -183,7 +189,8 @@ class BreakApp:
             index_to_replace = random.choice(range(len(standard_prompts)))
             random_prompt = random.choice(writing_prompts)
             standard_prompts[index_to_replace] = random_prompt
-
+        # prepend workflow prompts to standard prompts
+        standard_prompts = workflow_prompts + standard_prompts
         # Start displaying prompts
         self.display_prompts(standard_prompts, break_duration, todo_list, font_settings)
 
@@ -220,12 +227,14 @@ class BreakApp:
             next_button.pack(pady=20, fill='x', expand=True)
 
             # Snooze button
-            snooze_button = tk.Button(self.workflow_frame, text="Snooze", command=lambda: self.snooze(), font=("Arial", 24), bg='#4E4E4E', fg='white')
-            snooze_button.pack(pady=20, fill='x', expand=True)
+            self.add_snooze_button(self.workflow_frame)
         else:
+            self.choose_study_question_category(self.root, lambda: self.show_break_screen(break_duration, todo_list, font_settings, self.root)) 
             # After all prompts, display the break screen
-            self.show_break_screen(break_duration, todo_list, font_settings)
-
+    def add_snooze_button(self, frame):
+        snooze_button = tk.Button(frame, text="Snooze", command=lambda: self.snooze(), font=("Arial", 24), bg='#4E4E4E', fg='white')
+        snooze_button.pack(pady=20, fill='x', expand=True)
+    
     def next_prompt(self, prompts, break_duration, todo_list, font_settings, index, answer_entry):
         # Here you can handle the answer, e.g., save it to a file or process it
         answer = answer_entry.get("1.0", tk.END).strip()
@@ -234,25 +243,26 @@ class BreakApp:
         # Move to the next prompt
         self.display_prompts(prompts, break_duration, todo_list, font_settings, index + 1)
 
-    def show_break_screen(self, break_duration, todo_list, font_settings):
+    def show_break_screen(self, break_duration, todo_list, font_settings, frame):
         # Clear any existing widgets
-        for widget in self.workflow_frame.winfo_children():
+        for widget in frame.winfo_children():
             widget.destroy()
 
         # Display break time message
         quote = get_inspirational_quote()
-        tk.Label(self.workflow_frame, text=quote, font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
-        tk.Label(self.workflow_frame, text="To-do List:", font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
+        tk.Label(frame, text=quote, font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
+        tk.Label(frame, text="To-do List:", font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
         
         for item in todo_list:
-            tk.Label(self.workflow_frame, text=item, font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
-
+            tk.Label(frame, text=item, font=font_settings, bg='black', fg='white').pack(expand=True, pady=10)
+        # Schedule to return to the settings screen after the break duration
+        
         self.countdown(break_duration * 60, "Break")
         # Schedule to return to the settings screen after the break duration
         # Snooze button
-        snooze_button = tk.Button(self.workflow_frame, text="Snooze", command=lambda: self.snooze(), font=("Arial", 24), bg='#4E4E4E', fg='white')
-        snooze_button.pack(pady=20, fill='x', expand=True)
-
+        self.add_snooze_button(frame)
+    
+    
     def snooze(self):
         # Hide the current frame
         self.workflow_frame.pack_forget()
@@ -261,6 +271,7 @@ class BreakApp:
     def countdown(self, duration, label):
         if duration > 0:
             minutes, seconds = divmod(duration, 60)
+            print(f"{label} countdown: {minutes} minutes and {seconds} seconds remainding.")
             time_format = f"{int(minutes):02}:{int(seconds):02}"
             self.root.title(f"{label} - Time Remaining: {time_format}")
             self.root.after(1000, lambda: self.countdown(duration - 1, label))
@@ -270,9 +281,12 @@ class BreakApp:
 
     def end_break(self):
         self.workflow_frame.pack_forget()
+        # remove all frames
+        for widget in self.root.winfo_children():
+            widget.destroy()
         self.root.attributes('-fullscreen', False)
         self.root.attributes('-topmost', True)  # Keep settings on top
-        self.settings_frame.pack(fill='both', expand=True)
+        self.create_settings_frame()
 
     def on_focus_out(self, event):
         if self.alarm_playing:
@@ -312,6 +326,84 @@ class BreakApp:
     def play_mindfulness_reminder(self, reminder):
         subprocess.run(['espeak', '-s', '120', reminder])
 
+    def choose_study_question_category(self, frame, callback):
+        # Clear any existing widgets
+        for widget in frame.winfo_children():
+            widget.destroy()
+        # Add a study questions label to top of frame
+        tk.Label(frame, text="Study Questions", font=("Arial", 48), bg='black', fg='white').pack(expand=True, pady=10)
+        # Ask user which category they want to study
+        tk.Label(frame, text="Select a category to study:", font=("Arial", 36), bg='black', fg='white').pack(expand=True, pady=10)
+        categories = self.load_categories('questions')
+        # Add a standard list widget for categories
+        listbox = tk.Listbox(frame, font=("Arial", 36), bg='black', fg='white', selectbackground='#4E4E4E', selectforeground='white')
+        for category in categories:
+            listbox.insert(tk.END, category)
+        listbox.pack(fill='both', expand=True)
+        # Listen for enter key to select category
+        listbox.bind('<Return>', lambda event: self.start_study_questions(event, frame, callback))
+
+    def start_study_questions(self, event, frame, callback):
+        # Get the selected category
+        selected = event.widget.curselection()
+        if selected:
+            category = event.widget.get(selected[0])
+            # Load the questions from the category
+            questions = self.load_questions(category)
+            # Select 3 random, unique questions from the list
+            selected_questions = random.sample(questions, 3)
+            # Display the questions
+            self.display_questions(frame, selected_questions, callback)
+
+    def display_questions(self, frame, questions, callback, index=0):
+        if index < len(questions):
+            # Clear any existing widgets
+            for widget in frame.winfo_children():
+                widget.destroy()
+            # Add a study questions label to top of frame
+            tk.Label(frame, text="Study Questions", font=("Arial", 48), bg='black', fg='white').pack(expand=True, pady=10)
+            # Add a label for the question
+            tk.Label(frame, text=questions[index]['question'], font=("Arial", 36), bg='black', fg='white').pack(expand=True, pady=10)
+            # Add a text box for the user to write their answer
+            answer_entry = tk.Text(frame, height=5, font=("Arial", 24), bg='#3E3E3E', fg='white', insertbackground='white')
+            answer_entry.pack(expand=True, pady=10)
+            actual_answer = questions[index]['answer']
+            # Add a button to submit the answer
+            submit_button = tk.Button(frame, text="Submit", command=lambda: self.submit_answer(frame, answer_entry, actual_answer, questions, index, callback), font=("Arial", 24), bg='#4E4E4E', fg='white')
+            submit_button.pack(pady=10, fill='x', expand=True)
+        else:
+            # After all questions, display a completion message
+            callback()
+
+    def submit_answer(self, frame, answer_entry, actual_answer, questions, index, callback):
+        # Here you can handle the answer, e.g., save it to a file or process it
+        answer = answer_entry.get("1.0", tk.END).strip()
+        print(f"Answer to question {index + 1}: {answer}")  # Example: print the answer
+
+        # Clear any existing widgets
+        for widget in frame.winfo_children():
+            widget.destroy()
+
+        # Display the correct answer
+        tk.Label(frame, text="The correct answer is:", font=("Arial", 36), bg='black', fg='white').pack(expand=True, pady=10)
+        tk.Label(frame, text=actual_answer, font=("Arial", 26), bg='black', fg='white').pack(expand=True, pady=10)
+
+        # Button to proceed to the next question
+        next_button = tk.Button(frame, text="Next", command=lambda: self.display_questions(frame, questions, callback, index=index + 1), font=("Arial", 24), bg='#4E4E4E', fg='white')
+        next_button.pack(pady=20, fill='x', expand=True)
+
+    def load_categories(self, directory):
+        categories = []
+        for file in os.listdir(directory):
+            if file.endswith('.toml'):
+                categories.append(file[:-5])
+        return categories
+
+    def load_questions(self, category):
+        with open(f'questions/{category}.toml', 'r') as file:
+            data = toml.load(file)
+        return data['qna']
+
     def create_list_item_widget(self, frame, items):
         font_settings = ("Arial", 36)  # 3 times bigger than typical size
         bg_color = '#2E2E2E'  # Dark background
@@ -344,12 +436,19 @@ class BreakApp:
         remove_button.pack()
 
         return listbox
+def test_question_sequence():
+    root = tk.Tk()
+    app = BreakApp(root)
+    # clear any existing widgets
+    for widget in root.winfo_children():
+        widget.destroy()
+    app.choose_study_question_category(root, test_question_sequence)
+    root.mainloop()
 
 if __name__ == "__main__":
+    #test_question_sequence()
+    #exit()
     root = tk.Tk()
     app = BreakApp(root)
     # Example usage of create_list_item_widget
-    example_frame = tk.Frame(root)
-    example_frame.pack(fill='both', expand=True)
-    app.create_list_item_widget(example_frame, ["Project 1", "Project 2", "Project 3"])
     root.mainloop()

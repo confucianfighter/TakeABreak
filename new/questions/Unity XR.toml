@@ -1,0 +1,24 @@
+[[qna]]
+question = "What is it called when they only sharpen where the eyes are looking?"
+answer = "Foveated rendering."
+
+[[qna]]
+question = "What's the main interactor called in XR toolkit?"
+answer = "The near-far interactor."
+
+[[qna]]
+question = "How do you customize the near-far interaction caster?"
+answer = "By implementing IinteractionCaster and ICurveInteractionCaster."
+
+[[qna]]
+question = "Where do I update the thumbstick controls to the more flexible interface?"
+answer = "Project Settings > XRPlugin Management > Project Validation"
+
+[[qna]]
+question = "Path to individual components, such as number slider in the provided spatial panel?"
+answer = "game object root >  Spatial Panel Scroll > Scroll View > Viewport > Content > ..."
+
+[[qna]]
+question = "Where is the title text of a spatial panel located?"
+answer = "Gameobject root > Spatial Panel Scroll > Background > Header ... it's in the Header gameobject"
+

@@ -1,0 +1,1 @@
+"What is the technical definition of a job in unity?" = "Any struct that implements the IJob interface."
